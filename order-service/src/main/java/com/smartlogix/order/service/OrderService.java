@@ -160,4 +160,13 @@ public class OrderService {
                 lines
         );
     }
+
+    @Transactional
+    public void deleteOrder(String orderNumber) {
+        PurchaseOrder order = repository.findByOrderNumber(orderNumber)
+                .orElseThrow(() ->
+                        new OrderNotFoundException("No existe la orden " + orderNumber));
+
+        repository.delete(order);
+    }
 }

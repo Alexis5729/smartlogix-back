@@ -124,4 +124,13 @@ public class InventoryService {
                 item.getUpdatedAt()
         );
     }
+
+    @Transactional
+    public void deleteItem(String sku) {
+        InventoryItem item = repository.findBySku(sku)
+                .orElseThrow(() ->
+                        new InventoryNotFoundException("No existe el SKU " + sku));
+
+        repository.delete(item);
+    }
 }

@@ -71,6 +71,14 @@ public class ShipmentService {
         return toResponse(repository.save(shipment));
     }
 
+    @Transactional
+    public void deleteShipment(String trackingCode) {
+        Shipment shipment = repository.findByTrackingCode(trackingCode)
+                .orElseThrow(() -> new ShipmentNotFoundException("No existe el envío " + trackingCode));
+
+        repository.delete(shipment);
+    }
+
     private ShipmentResponse toResponse(Shipment shipment) {
         return new ShipmentResponse(
                 shipment.getTrackingCode(),
