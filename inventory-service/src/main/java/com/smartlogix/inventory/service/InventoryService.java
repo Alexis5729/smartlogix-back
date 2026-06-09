@@ -2,6 +2,7 @@ package com.smartlogix.inventory.service;
 
 import com.smartlogix.inventory.domain.InventoryItem;
 import com.smartlogix.inventory.dto.CreateInventoryItemRequest;
+import com.smartlogix.inventory.dto.UpdateInventoryItemRequest;
 import com.smartlogix.inventory.dto.InventoryAvailabilityResponse;
 import com.smartlogix.inventory.dto.InventoryItemResponse;
 import com.smartlogix.inventory.exception.InventoryNotFoundException;
@@ -123,6 +124,18 @@ public class InventoryService {
                 item.getReorderLevel(),
                 item.getUpdatedAt()
         );
+    }
+
+    public InventoryItemResponse updateItem(String sku, UpdateInventoryItemRequest request) {
+        InventoryItem item = loadBySku(sku);
+
+        item.setProductName(request.productName().trim());
+        item.setWarehouseCode(request.warehouseCode().trim().toUpperCase());
+        item.setAvailableQuantity(request.availableQuantity());
+        item.setReservedQuantity(request.reservedQuantity());
+        item.setReorderLevel(request.reorderLevel());
+
+        return toResponse(repository.save(item));
     }
 
     @Transactional

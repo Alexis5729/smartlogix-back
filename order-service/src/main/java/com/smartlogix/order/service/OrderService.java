@@ -10,6 +10,7 @@ import com.smartlogix.order.domain.OrderLine;
 import com.smartlogix.order.domain.OrderStatus;
 import com.smartlogix.order.domain.PurchaseOrder;
 import com.smartlogix.order.dto.CreateOrderRequest;
+import com.smartlogix.order.dto.UpdateOrderRequest;
 import com.smartlogix.order.dto.OrderLineRequest;
 import com.smartlogix.order.dto.OrderLineResponse;
 import com.smartlogix.order.dto.OrderResponse;
@@ -159,6 +160,28 @@ public class OrderService {
                 order.getCreatedAt(),
                 lines
         );
+    }
+
+    public OrderResponse updateOrder(String orderNumber, UpdateOrderRequest request) {
+        PurchaseOrder order = repository.findByOrderNumber(orderNumber)
+                .orElseThrow(() -> new OrderNotFoundException("No existe la orden " + orderNumber));
+
+        order.setCustomerName(request.customerName().trim());
+        order.setCustomerEmail(request.customerEmail().trim().toLowerCase());
+        order.setShippingAddress(request.shippingAddress().trim());
+        order.setTotalAmount(calculateTotal(request.lines()));
+
+        order.getLines().clear();
+
+        for (OrderLineRequest lineRequest : request.lines()) {
+            OrderLine line = new OrderLine();
+            line.setSku(lineRequest.sku().trim().toUpperCase());
+            line.setQuantity(lineRequest.quantity());
+            line.setUnitPrice(lineRequest.unitPrice());
+            order.addLine(line);
+        }
+
+        return toResponse(repository.save(order));
     }
 
     @Transactional

@@ -3,6 +3,7 @@ package com.smartlogix.shipment.service;
 import com.smartlogix.shipment.domain.Shipment;
 import com.smartlogix.shipment.domain.ShipmentStatus;
 import com.smartlogix.shipment.dto.CreateShipmentRequest;
+import com.smartlogix.shipment.dto.UpdateShipmentRequest;
 import com.smartlogix.shipment.dto.ShipmentResponse;
 import com.smartlogix.shipment.exception.ShipmentNotFoundException;
 import com.smartlogix.shipment.factory.ShipmentPlan;
@@ -68,6 +69,26 @@ public class ShipmentService {
         Shipment shipment = repository.findByTrackingCode(trackingCode.trim().toUpperCase())
                 .orElseThrow(() -> new ShipmentNotFoundException("No existe el envio " + trackingCode));
         shipment.setStatus(status);
+        return toResponse(repository.save(shipment));
+    }
+
+    public ShipmentResponse updateShipment(String trackingCode, UpdateShipmentRequest request) {
+        Shipment shipment = repository.findByTrackingCode(trackingCode.trim().toUpperCase())
+                .orElseThrow(() -> new ShipmentNotFoundException("No existe el envio " + trackingCode));
+
+        String destinationAddress = request.destinationAddress().trim();
+        String normalizedAddress = destinationAddress.toLowerCase(Locale.ROOT);
+
+        ShipmentPlanFactory planFactory = planFactoryResolver.resolve(normalizedAddress);
+        ShipmentPlan shipmentPlan = planFactory.createPlan(normalizedAddress);
+
+        shipment.setOrderNumber(request.orderNumber().trim().toUpperCase());
+        shipment.setDestinationAddress(destinationAddress);
+        shipment.setTotalUnits(request.totalUnits());
+        shipment.setCarrier(shipmentPlan.carrier());
+        shipment.setRouteCode(shipmentPlan.routeCode());
+        shipment.setEstimatedDeliveryDate(LocalDate.now().plusDays(shipmentPlan.estimatedDeliveryDays()));
+
         return toResponse(repository.save(shipment));
     }
 

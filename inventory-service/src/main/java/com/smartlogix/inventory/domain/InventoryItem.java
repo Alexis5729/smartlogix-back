@@ -69,13 +69,9 @@ public class InventoryItem {
         return warehouseCode;
     }
 
-    public void setWarehouseCode(String warehouseCode) {
-        this.warehouseCode = warehouseCode;
-    }
+    public void setWarehouseCode(String warehouseCode) {this.warehouseCode = warehouseCode;}
 
-    public int getAvailableQuantity() {
-        return availableQuantity;
-    }
+    public int getAvailableQuantity() {return availableQuantity;}
 
     public void setAvailableQuantity(int availableQuantity) {
         this.availableQuantity = availableQuantity;

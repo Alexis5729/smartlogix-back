@@ -2,6 +2,7 @@ package com.smartlogix.shipment.controller;
 
 import com.smartlogix.shipment.domain.ShipmentStatus;
 import com.smartlogix.shipment.dto.CreateShipmentRequest;
+import com.smartlogix.shipment.dto.UpdateShipmentRequest;
 import com.smartlogix.shipment.dto.ShipmentResponse;
 import com.smartlogix.shipment.service.ShipmentService;
 import jakarta.validation.Valid;
@@ -39,6 +40,13 @@ public class ShipmentController {
             @PathVariable String trackingCode,
             @RequestParam ShipmentStatus value) {
         return shipmentService.updateStatus(trackingCode, value);
+    }
+
+    @PutMapping("/{trackingCode}")
+    public ShipmentResponse updateShipment(
+            @PathVariable String trackingCode,
+            @Valid @RequestBody UpdateShipmentRequest request) {
+        return shipmentService.updateShipment(trackingCode, request);
     }
 
     @DeleteMapping("/{trackingNumber}")
