@@ -7,6 +7,7 @@ import java.time.OffsetDateTime;
 public record ShipmentResponse(
         String trackingCode,
         String orderNumber,
+        String destinationAddress,
         String carrier,
         String routeCode,
         LocalDate estimatedDeliveryDate,

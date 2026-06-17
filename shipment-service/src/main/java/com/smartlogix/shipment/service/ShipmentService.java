@@ -104,6 +104,7 @@ public class ShipmentService {
         return new ShipmentResponse(
                 shipment.getTrackingCode(),
                 shipment.getOrderNumber(),
+                shipment.getDestinationAddress(),
                 shipment.getCarrier(),
                 shipment.getRouteCode(),
                 shipment.getEstimatedDeliveryDate(),
