@@ -16,6 +16,8 @@ import com.smartlogix.order.dto.OrderLineResponse;
 import com.smartlogix.order.dto.OrderResponse;
 import com.smartlogix.order.exception.OrderNotFoundException;
 import com.smartlogix.order.repository.PurchaseOrderRepository;
+import com.smartlogix.order.discount.Discount;
+import com.smartlogix.order.repository.DiscountRepository;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
@@ -29,15 +31,18 @@ public class OrderService {
     private final PurchaseOrderRepository repository;
     private final InventoryClient inventoryClient;
     private final ShipmentClient shipmentClient;
+    private final DiscountRepository discountRepository;
 
     public OrderService(
             PurchaseOrderRepository repository,
             InventoryClient inventoryClient,
-            ShipmentClient shipmentClient
+            ShipmentClient shipmentClient,
+            DiscountRepository discountRepository
     ) {
         this.repository = repository;
         this.inventoryClient = inventoryClient;
         this.shipmentClient = shipmentClient;
+        this.discountRepository = discountRepository;
     }
 
     public OrderResponse createOrder(CreateOrderRequest request) {
@@ -108,7 +113,18 @@ public class OrderService {
         order.setCustomerEmail(request.customerEmail().trim().toLowerCase());
         order.setShippingAddress(request.shippingAddress().trim());
         order.setStatus(OrderStatus.PENDING);
-        order.setTotalAmount(calculateTotal(request.lines()));
+        BigDecimal subtotal = calculateTotal(request.lines());
+        BigDecimal discountAmount = calculateDiscount(request.discountCode(), subtotal);
+        BigDecimal total = subtotal.subtract(discountAmount);
+
+        order.setSubtotalAmount(subtotal);
+        order.setDiscountAmount(discountAmount);
+        order.setTotalAmount(total);
+        order.setDiscountCode(
+                request.discountCode() == null || request.discountCode().isBlank()
+                        ? null
+                        : request.discountCode().trim().toUpperCase()
+        );
 
         for (OrderLineRequest lineRequest : request.lines()) {
             OrderLine line = new OrderLine();
@@ -125,6 +141,25 @@ public class OrderService {
         return lines.stream()
                 .map(line -> line.unitPrice().multiply(BigDecimal.valueOf(line.quantity())))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    private BigDecimal calculateDiscount(String discountCode, BigDecimal subtotal) {
+        if (discountCode == null || discountCode.isBlank()) {
+            return BigDecimal.ZERO;
+        }
+
+        Discount discount = discountRepository.findByCodeIgnoreCase(discountCode.trim())
+                .orElseThrow(() -> new IllegalArgumentException("El código de descuento no existe."));
+
+        if (!Boolean.TRUE.equals(discount.getActive())) {
+            throw new IllegalArgumentException("El código de descuento no está activo.");
+        }
+
+        BigDecimal percentage = BigDecimal.valueOf(discount.getPercentage());
+
+        return subtotal
+                .multiply(percentage)
+                .divide(BigDecimal.valueOf(100));
     }
 
     private int totalUnits(PurchaseOrder order) {
@@ -154,7 +189,10 @@ public class OrderService {
         return new OrderResponse(
                 order.getOrderNumber(),
                 order.getStatus(),
+                order.getSubtotalAmount(),
+                order.getDiscountAmount(),
                 order.getTotalAmount(),
+                order.getDiscountCode(),
                 order.getTrackingCode(),
                 order.getRejectionReason(),
                 order.getCreatedAt(),
@@ -169,7 +207,18 @@ public class OrderService {
         order.setCustomerName(request.customerName().trim());
         order.setCustomerEmail(request.customerEmail().trim().toLowerCase());
         order.setShippingAddress(request.shippingAddress().trim());
-        order.setTotalAmount(calculateTotal(request.lines()));
+        BigDecimal subtotal = calculateTotal(request.lines());
+        BigDecimal discountAmount = calculateDiscount(request.discountCode(), subtotal);
+        BigDecimal total = subtotal.subtract(discountAmount);
+
+        order.setSubtotalAmount(subtotal);
+        order.setDiscountAmount(discountAmount);
+        order.setTotalAmount(total);
+        order.setDiscountCode(
+                request.discountCode() == null || request.discountCode().isBlank()
+                        ? null
+                        : request.discountCode().trim().toUpperCase()
+        );
 
         order.getLines().clear();
 

@@ -54,6 +54,14 @@ public class PurchaseOrder {
     @Column(nullable = false)
     private OffsetDateTime createdAt;
 
+    @Column(precision = 14, scale = 2)
+    private BigDecimal subtotalAmount = BigDecimal.ZERO;
+
+    @Column(precision = 14, scale = 2)
+    private BigDecimal discountAmount = BigDecimal.ZERO;
+
+    private String discountCode;
+
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private List<OrderLine> lines = new ArrayList<>();
 
@@ -140,5 +148,29 @@ public class PurchaseOrder {
     public void addLine(OrderLine line) {
         line.setOrder(this);
         this.lines.add(line);
+    }
+
+    public BigDecimal getSubtotalAmount() {
+        return subtotalAmount;
+    }
+
+    public void setSubtotalAmount(BigDecimal subtotalAmount) {
+        this.subtotalAmount = subtotalAmount;
+    }
+
+    public BigDecimal getDiscountAmount() {
+        return discountAmount;
+    }
+
+    public void setDiscountAmount(BigDecimal discountAmount) {
+        this.discountAmount = discountAmount;
+    }
+
+    public String getDiscountCode() {
+        return discountCode;
+    }
+
+    public void setDiscountCode(String discountCode) {
+        this.discountCode = discountCode;
     }
 }
