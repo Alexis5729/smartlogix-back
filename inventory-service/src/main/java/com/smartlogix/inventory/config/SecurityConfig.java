@@ -28,6 +28,9 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/actuator/health", "/actuator/info").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/inventory/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/inventory/**").permitAll()
+                        .requestMatchers("/api/inventory/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_WAREHOUSE_MANAGER")
                         .requestMatchers("/api/**").authenticated()
                         .anyRequest().denyAll()
                 )

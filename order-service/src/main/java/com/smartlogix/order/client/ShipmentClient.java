@@ -22,7 +22,11 @@ public class ShipmentClient {
                         request,
                         ShipmentResponse.class
                 ),
-                throwable -> fallbackResponse(request)
+                (Throwable throwable) -> {
+                    System.err.println("Error al crear el envío:");
+                    throwable.printStackTrace();
+                    return fallbackResponse(request);
+                }
         );
     }
 

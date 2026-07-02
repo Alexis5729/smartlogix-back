@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotBlank;
 public record UpdateShipmentRequest(
         @NotBlank String orderNumber,
         @NotBlank String destinationAddress,
-        @Min(1) int totalUnits
+        @Min(1) int totalUnits,
+        @NotBlank String status
 ) {
 }

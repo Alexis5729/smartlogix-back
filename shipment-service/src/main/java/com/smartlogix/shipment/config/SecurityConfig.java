@@ -28,7 +28,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/actuator/health", "/actuator/info").permitAll()
-                        .requestMatchers("/api/shipments/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/shipments", "/api/shipments/").permitAll()
+                        .requestMatchers("/api/shipments/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_WAREHOUSE_MANAGER")
                         .requestMatchers("/api/**").authenticated()
                         .anyRequest().denyAll()
                 )

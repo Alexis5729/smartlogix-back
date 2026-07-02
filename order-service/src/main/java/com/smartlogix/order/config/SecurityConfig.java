@@ -28,6 +28,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/actuator/health", "/actuator/info").permitAll()
+                        .requestMatchers("/api/discounts/**").hasAuthority("ROLE_ADMIN")
+                        .requestMatchers("/api/orders/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_USER")
                         .requestMatchers("/api/**").authenticated()
                         .anyRequest().denyAll()
                 )

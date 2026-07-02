@@ -88,6 +88,7 @@ public class ShipmentService {
         shipment.setCarrier(shipmentPlan.carrier());
         shipment.setRouteCode(shipmentPlan.routeCode());
         shipment.setEstimatedDeliveryDate(LocalDate.now().plusDays(shipmentPlan.estimatedDeliveryDays()));
+        shipment.setStatus(ShipmentStatus.valueOf(request.status()));
 
         return toResponse(repository.save(shipment));
     }
