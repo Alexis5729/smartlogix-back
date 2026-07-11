@@ -1,6 +1,8 @@
 package com.smartlogix.inventory.service;
 
+import com.smartlogix.inventory.domain.ActionType;
 import com.smartlogix.inventory.domain.InventoryItem;
+import com.smartlogix.inventory.domain.MovementType;
 import com.smartlogix.inventory.dto.CreateInventoryItemRequest;
 import com.smartlogix.inventory.dto.UpdateInventoryItemRequest;
 import com.smartlogix.inventory.dto.InventoryAvailabilityResponse;
@@ -17,9 +19,14 @@ import org.springframework.transaction.annotation.Transactional;
 public class InventoryService {
 
     private final InventoryItemRepository repository;
+    private final InventoryMovementService movementService;
 
-    public InventoryService(InventoryItemRepository repository) {
+    public InventoryService(
+            InventoryItemRepository repository,
+            InventoryMovementService movementService
+    ) {
         this.repository = repository;
+        this.movementService = movementService;
     }
 
     public InventoryItemResponse createItem(CreateInventoryItemRequest request) {
@@ -35,7 +42,18 @@ public class InventoryService {
         item.setReservedQuantity(0);
         item.setReorderLevel(request.reorderLevel());
 
-        return toResponse(repository.save(item));
+        InventoryItem savedItem = repository.save(item);
+        movementService.recordMovement(
+                savedItem,
+                MovementType.ENTRY,
+                ActionType.CREATE_PRODUCT,
+                savedItem.getAvailableQuantity(),
+                0,
+                savedItem.getAvailableQuantity(),
+                "Producto creado"
+        );
+
+        return toResponse(savedItem);
     }
 
     @Transactional(readOnly = true)
@@ -65,6 +83,7 @@ public class InventoryService {
 
     public InventoryItemResponse reserve(String sku, int quantity) {
         InventoryItem item = loadBySku(sku);
+        int previousStock = item.getAvailableQuantity();
         if (quantity <= 0) {
             throw new InventoryOperationException("La cantidad debe ser mayor a 0.");
         }
@@ -76,7 +95,18 @@ public class InventoryService {
         item.setAvailableQuantity(item.getAvailableQuantity() - quantity);
         item.setReservedQuantity(item.getReservedQuantity() + quantity);
 
-        return toResponse(repository.save(item));
+        InventoryItem savedItem = repository.save(item);
+        movementService.recordMovement(
+                savedItem,
+                MovementType.EXIT,
+                ActionType.ORDER_CREATED,
+                quantity,
+                previousStock,
+                savedItem.getAvailableQuantity(),
+                "Reserva de stock"
+        );
+
+        return toResponse(savedItem);
     }
 
     public InventoryItemResponse release(String sku, int quantity) {
@@ -88,11 +118,23 @@ public class InventoryService {
             throw new InventoryOperationException(
                     "No hay suficiente stock reservado para liberar en SKU " + sku);
         }
+        int previousStock = item.getAvailableQuantity();
 
         item.setReservedQuantity(item.getReservedQuantity() - quantity);
         item.setAvailableQuantity(item.getAvailableQuantity() + quantity);
 
-        return toResponse(repository.save(item));
+        InventoryItem savedItem = repository.save(item);
+        movementService.recordMovement(
+                savedItem,
+                MovementType.ENTRY,
+                ActionType.ORDER_CANCELLED,
+                quantity,
+                previousStock,
+                savedItem.getAvailableQuantity(),
+                "Liberacion de reserva"
+        );
+
+        return toResponse(savedItem);
     }
 
     public InventoryItemResponse dispatch(String sku, int quantity) {
@@ -129,13 +171,27 @@ public class InventoryService {
     public InventoryItemResponse updateItem(String sku, UpdateInventoryItemRequest request) {
         InventoryItem item = loadBySku(sku);
 
+        int previousStock = item.getAvailableQuantity();
         item.setProductName(request.productName().trim());
         item.setWarehouseCode(request.warehouseCode().trim().toUpperCase());
         item.setAvailableQuantity(request.availableQuantity());
         item.setReservedQuantity(request.reservedQuantity());
         item.setReorderLevel(request.reorderLevel());
 
-        return toResponse(repository.save(item));
+        InventoryItem savedItem = repository.save(item);
+        if (previousStock != savedItem.getAvailableQuantity()) {
+            movementService.recordMovement(
+                    savedItem,
+                    MovementType.ADJUSTMENT,
+                    ActionType.UPDATE_STOCK,
+                    Math.abs(savedItem.getAvailableQuantity() - previousStock),
+                    previousStock,
+                    savedItem.getAvailableQuantity(),
+                    "Actualizacion manual de stock"
+            );
+        }
+
+        return toResponse(savedItem);
     }
 
     @Transactional
@@ -143,6 +199,16 @@ public class InventoryService {
         InventoryItem item = repository.findBySku(sku)
                 .orElseThrow(() ->
                         new InventoryNotFoundException("No existe el SKU " + sku));
+
+        movementService.recordMovement(
+                item,
+                MovementType.EXIT,
+                ActionType.DELETE_PRODUCT,
+                item.getAvailableQuantity() + item.getReservedQuantity(),
+                item.getAvailableQuantity(),
+                0,
+                "Producto eliminado"
+        );
 
         repository.delete(item);
     }
