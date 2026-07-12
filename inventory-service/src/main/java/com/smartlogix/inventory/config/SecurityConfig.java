@@ -22,8 +22,15 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(csrf -> csrf.disable())
+                .csrf(AbstractHttpConfigurer::disable)
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/actuator/health", "/actuator/info")
+                        .permitAll()
+
+                        .requestMatchers("/api/inventory/movements", "/api/inventory/movements/**")
+                        .hasAnyAuthority("ROLE_ADMIN", "ROLE_WAREHOUSE_MANAGER")
+
                         .requestMatchers(HttpMethod.GET, "/api/inventory/**")
                         .hasAnyAuthority("ROLE_ADMIN", "ROLE_WAREHOUSE_MANAGER", "ROLE_USER")
 
@@ -37,7 +44,8 @@ public class SecurityConfig {
                         .hasAuthority("ROLE_ADMIN")
 
                         .anyRequest().authenticated()
-                );
+                )
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
